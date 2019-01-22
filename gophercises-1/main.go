@@ -6,6 +6,7 @@ import (
     "fmt"
     "os"
     "encoding/csv"
+    "math/rand"
     "strings"
     "time"
 
@@ -14,6 +15,7 @@ import (
 func main(){
     csvFilename := flag.String("csv", "problems.csv", "a csv file. format: 'question','answer'")
     timeLimit := flag.Int("tpq", 30, "Time limit per question, in seconds")
+    randomize := flag.Bool("random", false, "Whether to randomize the questions, boolean")
     flag.Parse()
     
     file, err := os.Open(*csvFilename)
@@ -32,6 +34,10 @@ func main(){
     
     problems := parseLines(lines)
     
+    if *randomize {
+        problems = shuffleSlice(problems)
+    }
+
     timer := time.NewTimer(time.Duration(*timeLimit) * time.Second)
 
     amountCorrect := 0
@@ -41,7 +47,7 @@ func main(){
         go func() {
             var answer string
             fmt.Scanf("%s\n", &answer)
-            answerChannel <- answer
+            answerChannel <- strings.ToLower(answer)
         }()
 
         select {
@@ -62,11 +68,21 @@ func parseLines(lines [][]string) []problem {
     for i, line := range lines {
         toret[i] = problem{
             question: line[0],
-            answer: strings.TrimSpace(line[1]),
+            answer: strings.ToLower(strings.TrimSpace(line[1])),
         }
     }
     return toret
 }
+
+func shuffleSlice(problems []problem) []problem {
+    r := rand.New(rand.NewSource(time.Now().Unix()))
+    toret := make([]problem, len(problems))
+    permutation := r.Perm(len(problems))
+    for i, valindex := range permutation {
+        toret[i] = problems[valindex]
+    }
+    return toret
+} 
 
 type problem struct {
     question string
